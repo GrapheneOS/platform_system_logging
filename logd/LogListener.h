@@ -31,3 +31,5 @@ class LogListener {
     int socket_;
     LogBuffer* logbuf_;
 };
+
+void OnNotableMessage(const int type, const uid_t uid, const pid_t pid, const char* msg, const size_t msg_len);

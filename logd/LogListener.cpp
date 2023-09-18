@@ -22,8 +22,11 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include <mutex>
 #include <thread>
 
+#include <android/os/logcat/ILogcatManagerService.h>
+#include <binder/IServiceManager.h>
 #include <cutils/sockets.h>
 #include <private/android_filesystem_config.h>
 #include <private/android_logger.h>
@@ -48,6 +51,46 @@ void LogListener::ThreadFunction() {
 
     while (true) {
         HandleData();
+    }
+}
+
+std::mutex logcatManagerCheckLock;
+android::sp<android::os::logcat::ILogcatManagerService> logcatManager;
+
+void OnNotableMessage(const int type, const uid_t uid, const pid_t pid, const char* msg, const size_t msg_len) {
+    using namespace android;
+    using android::os::logcat::ILogcatManagerService;
+
+    for (int i = 0; i < 2; ++i) {
+        sp<ILogcatManagerService> lm = nullptr;
+        {
+            std::lock_guard<std::mutex> guard(logcatManagerCheckLock);
+            if (logcatManager == nullptr) {
+                logcatManager = interface_cast<ILogcatManagerService>(
+                        defaultServiceManager()->checkService(String16("logcat")));
+
+                if (logcatManager == nullptr) {
+                    // system_server hasn't started yet
+                    return;
+                }
+            }
+        }
+
+        static_assert(sizeof(char) == sizeof(uint8_t));
+        auto msg_u8 = reinterpret_cast<const uint8_t*>(msg);
+        std::vector<uint8_t> msgVec(msg_u8, msg_u8 + msg_len);
+
+        binder::Status status = logcatManager->onNotableMessage(type, uid, pid, msgVec);
+
+        if (status.isOk()) {
+            return;
+        }
+
+        {
+            std::lock_guard<std::mutex> guard(logcatManagerCheckLock);
+            // happens after system_server restart, which makes logcatManager reference stale
+            logcatManager = nullptr;
+        }
     }
 }
 
