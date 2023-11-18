@@ -38,6 +38,7 @@
 #include <private/android_logger.h>
 
 #include "LogKlog.h"
+#include "LogListener.h"
 #include "LogUtils.h"
 #include "libaudit.h"
 
@@ -104,6 +105,12 @@ bool LogAudit::onDataAvailable(SocketClient* cli) {
     if (logPrint("type=%d %.*s", rep.nlh.nlmsg_type, rep.nlh.nlmsg_len, rep.data) >= 0) {
         logDecodedPath(rep.data);
     }
+
+    if (rep.nlh.nlmsg_type == 1499) { // defined in kernel, in include/uapi/linux/audit.h
+        OnNotableMessage(NOTABLE_MSG_SELINUX_TSEC_FLAG_DENIAL, 0, 0, rep.data, rep.nlh.nlmsg_len);
+    }
+
+    logPrint("type=%d %.*s", rep.nlh.nlmsg_type, rep.nlh.nlmsg_len, rep.data);
 
     return true;
 }
