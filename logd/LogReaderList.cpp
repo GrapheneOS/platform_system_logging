@@ -31,7 +31,7 @@ static sp<ILogcatManagerService> InitLogcatService() {
 }
 
 static sp<ILogcatManagerService> GetLogcatService() {
-    static sp<ILogcatManagerService> logcat_service = InitLogcatService();
+    sp<ILogcatManagerService> logcat_service = InitLogcatService();
 
     if (logcat_service == nullptr) {
         LOG(ERROR) << "Permission problem or fatal error occurs to get logcat service";
