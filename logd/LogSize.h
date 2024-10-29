@@ -20,7 +20,7 @@
 
 #include <log/log.h>
 
-static constexpr size_t kDefaultLogBufferSize = 256 * 1024;
+static constexpr size_t kDefaultLogBufferSize = 512 * 1024;
 static constexpr size_t kLogBufferMinSize = 64 * 1024;
 static constexpr size_t kLogBufferMaxSize = 256 * 1024 * 1024;
 
